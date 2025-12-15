@@ -21,15 +21,16 @@ from rest_framework import routers
 from timetracking import views
 from rest_framework.urlpatterns import format_suffix_patterns
 
-router = routers.DefaultRouter()
-router.register(r"employee", views.EmployeeViewSet)
-router.register(r"time_event", views.TimeEventViewSet)
-router.register(r"schedule", views.ScheduleViewSet)
+router = routers.DefaultRouter()  # or SimpleRouter
+router.register(r"employees", views.EmployeeViewSet, basename="employees")
+router.register(r"schedule", views.ScheduleViewSet, basename="schedule")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("schedule/", views.schedule_list.as_view()),
-    path("schedule/<int:pk>", views.schedule_detail.as_view()),
+    path("time-events/register/", views.TimeEventRegister.as_view()),
+    path("schedule/<int:pk>/", views.ScheduleDetail.as_view()),
+    path("reports/employee/<int:employee_id>/", views.EmployeeReport.as_view()),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
+urlpatterns += router.urls

@@ -1,8 +1,21 @@
 from rest_framework import serializers
-from models import Employee
+from timetracking.models import Employee, TimeEvent, Schedule
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ["employee_id", "name", "surname"]
+        fields = ["name", "surname"]
+        # fields = "__all__"
+
+
+class TimeEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeEvent
+        fields = ["employee", "event_type", "timestamp", "device_id"]
+
+
+class ScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Schedule
+        fields = ["employee", "date", "time_start", "time_end", "day_type"]
