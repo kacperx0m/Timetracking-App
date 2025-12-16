@@ -24,12 +24,13 @@ from rest_framework.urlpatterns import format_suffix_patterns
 router = routers.DefaultRouter()  # or SimpleRouter
 router.register(r"employees", views.EmployeeViewSet, basename="employees")
 router.register(r"schedule", views.ScheduleViewSet, basename="schedule")
+router.register(r"time-events", views.TimeEventViewSet, basename="time-event")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("time-events/register/", views.TimeEventRegister.as_view()),
-    path("schedule/<int:pk>/", views.ScheduleDetail.as_view()),
-    path("reports/employee/<int:employee_id>/", views.EmployeeReport.as_view()),
+    # path("schedule/<int:pk>/", views.ScheduleDetail.as_view()),
+    # path("reports/employee/<int:employee_id>/", views.EmployeeReport.as_view()),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

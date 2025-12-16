@@ -13,19 +13,22 @@ class Employee(models.Model):
 
 
 class EventTypes(models.TextChoices):
-    CHECK_IN = ("CHECK_IN",)
+    CHECK_IN = "CHECK_IN"
     CHECK_OUT = "CHECK_OUT"
-    BRAEK_START = "BREAK_START"
+    BREAK_START = "BREAK_START"
     BREAK_END = "BREAK_END"
 
 
 class TimeEvent(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
-    event_type = models.CharField(max_length=20, choices=EventTypes)
+    event_type = models.CharField(max_length=20, choices=EventTypes.choices)
     timestamp = models.DateTimeField(
         auto_now_add=True
     )  # set field to now when object is created
     device_id = models.IntegerField()
+
+    class Meta:
+        ordering = ["-timestamp"]
 
     def __str__(self):
         return (
@@ -42,11 +45,11 @@ class DayTypes(models.TextChoices):
 class Schedule(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     date = models.DateField()
-    day_type = models.CharField(max_length=10, choices=DayTypes)
-    time_start = models.TimeField()
-    time_end = models.TimeField()
+    day_type = models.CharField(max_length=10, choices=DayTypes.choices)
+    time_start = models.TimeField(null=True, blank=True)
+    time_end = models.TimeField(null=True, blank=True)
 
     def __str__(self):
         if self.day_type in ["OFF", "LEAVE"]:
             return f"{self.date}: {self.employee} {self.day_type}"
-        return f"{self.date}: {self.employee} {self.time_start} {self.time_end}"
+        return f"{self.date}: {self.employee} {self.day_type} {self.time_start} {self.time_end}"
