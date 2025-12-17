@@ -4,20 +4,26 @@ from django.core.exceptions import ValidationError
 
 class ScheduleService:
     @staticmethod
-    def create_schedule_day(employee_id, date, day_type, start_time, end_time):
+    def validate_no_schedule_duplicate(employee_id, date):
         if Schedule.objects.filter(employee_id=employee_id, date=date).exists():
             raise ValidationError(
                 f"Schedule for {employee_id} on {date} already exists"
             )
 
+    @staticmethod
+    def validate_work_day(day_type, time_start, time_end):
         if day_type == "WORK":
-            if not start_time or end_time:
+            if not time_start or not time_end:
                 raise ValidationError("Work day requires start and end time")
-            if start_time >= end_time:
+            if time_start >= time_end:
                 raise ValidationError("Start time must be before end time")
 
+    @staticmethod
+    def create_schedule_day(employee_id, date, day_type, time_start, time_end):
+        ScheduleService.validate_no_schedule_duplicate(employee_id, date)
+        ScheduleService.validate_work_day(day_type, time_start, time_end)
         return Schedule.objects.create(
-            employee_id, date, day_type, start_time=start_time, end_time=end_time
+            employee_id, date, day_type, time_start=time_start, time_end=time_end
         )
 
     @staticmethod
@@ -25,8 +31,8 @@ class ScheduleService:
         employee_id,
         days,
         day_type,
-        start_time,
-        end_time,
+        time_start,
+        time_end,
     ):
 
         created_schedules = []
@@ -36,18 +42,41 @@ class ScheduleService:
                     employee_id=employee_id,
                     date=day,
                     day_type=day_type,
-                    start_time=start_time,
-                    end_time=end_time,
+                    time_start=time_start,
+                    time_end=time_end,
                 )
                 created_schedules.append(schedule)
-            except ValidationError as e:
+            except Exception as e:
                 raise (f"Error {e}")
 
         return created_schedules
 
     @staticmethod
-    def update_schedule_day():
-        pass
+    def update_schedule_day(schedule_id, day_type, time_start, time_end):
+        try:
+            schedule = Schedule.objects.get(id=schedule_id)
+        except Schedule.DoesNotExist:
+            raise ValidationError(f"Schedule {schedule_id} does not exist")
 
-    def update_schedule_days():
-        pass
+        ScheduleService.validate_work_day(day_type, time_start, time_end)
+        # schedule.update() ?
+        # schedule.employee = employee_id
+        # schedule.date = date
+        schedule.day_type = day_type
+        schedule.time_start = time_start
+        schedule.time_end = time_end
+        schedule.save()
+
+        return schedule
+
+    @staticmethod
+    def update_schedule_days(schedule_ids, day_type, time_start, time_end):
+        updated_schedules = []
+        for schedule_id in schedule_ids:
+            try:
+                schedule = ScheduleService.update_schedule_days()
+                updated_schedules.append(schedule)
+            except Exception as e:
+                raise (f"Error {e}")
+
+        return updated_schedules
