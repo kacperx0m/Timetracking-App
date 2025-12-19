@@ -3,6 +3,7 @@ from timetracking.serializers import (
     ScheduleSerializer,
     EmployeeSerializer,
     TimeEventSerializer,
+    DailyWorklogSerializer,
 )
 from rest_framework import generics, viewsets, views, status
 from rest_framework.response import Response
@@ -10,10 +11,12 @@ from timetracking.services.time_event_service import TimeEventService
 from timetracking.services.schedule_service import ScheduleService
 from timetracking.services.report_service import ReportService
 from rest_framework.decorators import action
+import datetime
+from django.utils import timezone
 
 
 # Create your views here.
-class TimeEventRegister(generics.CreateAPIView):
+class TimeEventRegister(generics.ListCreateAPIView):
     queryset = TimeEvent.objects.all()
     serializer_class = TimeEventSerializer
 
@@ -70,26 +73,14 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def get_employee_schedule_range(self, request):
-        employee_id, start_date, end_date, day_type = self.get_query_params(request)
-        schedule = Schedule.objects.all()
-
-        # if not employee_id:
-        #     return Response(
-        #         {"error": f"No employee {employee_id}"},
-        #         status=status.HTTP_400_BAD_REQUEST,
-        #     )
-
-        # if not start_date or not end_date:
-        #     return Response(
-        #         {"error": f"No date range {start_date}-{end_date}"},
-        #         status=status.HTTP_400_BAD_REQUEST,
-        #     )
+        employee_id, start_date, end_date, _ = self.get_query_params(request)
+        schedules = Schedule.objects.all()
 
         if employee_id:
-            schedules = Schedule.objects.filter(employee_id=employee_id)
+            schedules = schedules.filter(employee_id=employee_id)
 
         if start_date and end_date:
-            schedules = Schedule.objects.filter(date__range=[start_date, end_date])
+            schedules = schedules.filter(date__range=[start_date, end_date])
 
         schedules = schedules.order_by("date", "employee")
         serializer = self.get_serializer(schedules, many=True)
@@ -175,7 +166,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(f"Error {e}", status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=["delete"])
+    @action(detail=False, methods=["delete"])  # TODO: delete or post?
     def delete_multiple(self, request, *args, **kwargs):
         schedule_ids = request.data.get("schedule_ids", [])
 
@@ -191,33 +182,40 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         )
 
 
-class EmployeeReport(viewsets.ModelViewSet):
-    queryset = Employee.objects.all()
-    serializer_class = EmployeeSerializer
+class EmployeeReport(views.APIView):
+    # queryset = Employee.objects.all()
+    # serializer_class = EmployeeSerializer
 
-    @action(detail=False, methods=["get"])
-    def report(self, request, pk, format=None):
+    # @action(detail=True, methods=["get"])
+    # def report(self, request, pk, format=None):
+    def get(self, request, pk):
         employee = Employee.objects.get(pk=pk)
-        serializer = EmployeeSerializer(employee, data=request.data)
-        serializer.is_valid(raise_exception=True)
 
         start_date = request.query_params.get("start_date")
         end_date = request.query_params.get("end_date")
+        if not start_date:
+            start_date = timezone.localdate()
+        if not end_date:
+            end_date = timezone.localdate()
         schedules = Schedule.objects.filter(employee=employee).filter(
             date__range=[start_date, end_date]
         )
         time_events = TimeEvent.objects.filter(employee=employee).filter(
-            timestamp__range=[start_date, end_date]
+            timestamp__date__range=[start_date, end_date]
         )
 
-        report = ReportService.generate_employee_raport(
+        print("schedules", schedules, "time_events", time_events)
+        reports = ReportService.generate_employee_report(
             employee, schedules, time_events
         )
+        print("reports:", reports)
+        serializer = DailyWorklogSerializer(reports, many=True)
 
-        return Response({"report": report})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # TODO: add to csv
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
-    pass

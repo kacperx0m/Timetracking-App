@@ -23,7 +23,11 @@ class ScheduleService:
         ScheduleService.validate_no_schedule_duplicate(employee_id, date)
         ScheduleService.validate_work_day(day_type, time_start, time_end)
         return Schedule.objects.create(
-            employee_id, date, day_type, time_start=time_start, time_end=time_end
+            employee_id=employee_id,
+            date=date,
+            day_type=day_type,
+            time_start=time_start,
+            time_end=time_end,
         )
 
     @staticmethod
@@ -74,9 +78,11 @@ class ScheduleService:
         updated_schedules = []
         for schedule_id in schedule_ids:
             try:
-                schedule = ScheduleService.update_schedule_days()
+                schedule = ScheduleService.update_schedule_day(
+                    schedule_id, day_type, time_start, time_end
+                )
                 updated_schedules.append(schedule)
             except Exception as e:
-                raise (f"Error {e}")
+                raise ValidationError(f"Error updating schedule {schedule_id} :{e}")
 
         return updated_schedules
