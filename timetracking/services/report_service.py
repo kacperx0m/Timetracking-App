@@ -1,30 +1,31 @@
 from timetracking.services.worklog_service import WorklogService
 from django.http import HttpResponse
 import csv
+from rest_framework.exceptions import ValidationError
 
 
-# TODO: add aggregate statistics?
 class ReportService:
     @staticmethod
     def generate_employee_report(employee, schedules, time_events):
         reports = []
         for single_schedule in schedules:
-            # if single_schedule.day_type == "WORK":
             daily_events = time_events.filter(timestamp__date=single_schedule.date)
             daily_worklog = WorklogService.create_daily_worklog(
                 employee, single_schedule, daily_events
             )
 
-            reports.append(daily_worklog.to_dict())
+            reports.append(daily_worklog)
         return reports
 
     @staticmethod
     def export_to_csv(employee_report):
-        filename = f"Report_{employee_report[0]["employee_id"]}_{employee_report[0]["date"]}_{employee_report[-1]["date"]}.csv"
+        if not employee_report:
+            raise ValidationError("Cannot export empty report")
+        filename = f"Report_employee{employee_report[0].employee_id}_{employee_report[0].date}_{employee_report[-1].date}.csv"
         response = HttpResponse(
-            content="text/csv",
-            headers={f'Content-Disposition": "attachment; filename="{filename}"'},
+            content_type="text/csv",
         )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         writer = csv.writer(response)
         writer.writerow(
@@ -44,15 +45,15 @@ class ReportService:
         for report in employee_report:
             writer.writerow(
                 [
-                    report["employee_id"],
-                    report["date"],
-                    report["planned_hours"],
-                    round(report["worked_hours"], 2),
-                    round(report["break_minutes"], 2),
-                    round(report["minutes_late"], 2),
-                    "Yes" if report["absent"] else "No",
-                    "Yes" if report["is_leave"] else "No",
-                    ", ".join(report["anomalies"]) if report["anomalies"] else "None",
+                    report.employee_id,
+                    report.date,
+                    report.planned_hours,
+                    round(report.worked_hours, 2),
+                    round(report.break_minutes, 2),
+                    round(report.minutes_late, 2),
+                    "Yes" if report.absent else "No",
+                    "Yes" if report.is_leave else "No",
+                    ", ".join(report.anomalies) if report.anomalies else "None",
                 ]
             )
 

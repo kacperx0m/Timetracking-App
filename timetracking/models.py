@@ -4,7 +4,6 @@ from django.db import models
 
 
 class Employee(models.Model):
-    # employee_id = models.IntegerField(unique=True, auto_created=True)
     name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
 
@@ -23,7 +22,7 @@ class TimeEvent(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     event_type = models.CharField(max_length=20, choices=EventTypes.choices)
     timestamp = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True, db_index=True
     )  # set field to now when object is created
     device_id = models.IntegerField()
 
@@ -43,8 +42,9 @@ class DayTypes(models.TextChoices):
 
 
 class Schedule(models.Model):
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
-    date = models.DateField()
+    # Restrict deleting worklog with employee related
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT)
+    date = models.DateField(db_index=True)
     day_type = models.CharField(max_length=10, choices=DayTypes.choices)
     time_start = models.TimeField(null=True, blank=True)
     time_end = models.TimeField(null=True, blank=True)

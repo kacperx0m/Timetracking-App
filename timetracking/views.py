@@ -1,5 +1,7 @@
-from timetracking.models import Schedule, Employee, TimeEvent, EventTypes
+from timetracking.models import Schedule, Employee, TimeEvent
 from timetracking.serializers import (
+    ScheduleBaseSerializer,
+    ScheduleCreateSerializer,
     ScheduleSerializer,
     EmployeeSerializer,
     TimeEventSerializer,
@@ -11,12 +13,12 @@ from timetracking.services.time_event_service import TimeEventService
 from timetracking.services.schedule_service import ScheduleService
 from timetracking.services.report_service import ReportService
 from rest_framework.decorators import action
-import datetime
 from django.utils import timezone
+import calendar
 
 
 # Create your views here.
-class TimeEventRegister(generics.ListCreateAPIView):
+class TimeEventRegister(generics.CreateAPIView):
     queryset = TimeEvent.objects.all()
     serializer_class = TimeEventSerializer
 
@@ -36,17 +38,21 @@ class TimeEventRegister(generics.ListCreateAPIView):
             response_serializer = TimeEventSerializer(time_event)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:  # logic error
-            return Response(f"Error {e}", status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class TimeEventViewSet(viewsets.ModelViewSet):
-#     queryset = TimeEvent.objects.all()
-#     serializer_class = TimeEventSerializer
+class TimeEventViewSet(viewsets.ModelViewSet):
+    queryset = TimeEvent.objects.all()
+    serializer_class = TimeEventSerializer
 
 
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
-    serializer_class = ScheduleSerializer
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ScheduleCreateSerializer
+        return ScheduleSerializer
 
     def get_query_params(self, request):
         employee_id = request.query_params.get("employee_id")
@@ -100,10 +106,10 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             schedule = ScheduleService.create_schedule_day(
                 employee_id, date, day_type, time_start, time_end
             )
-            response_serializer = ScheduleSerializer(schedule)
+            response_serializer = ScheduleCreateSerializer(schedule)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:  # logic error
-            return Response(f"Error {e}", status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["post"])
     def create_multiple(self, request, *args, **kwargs):
@@ -114,15 +120,19 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             schedules = ScheduleService.create_schedule_days(
                 employee_id, days, day_type, time_start, time_end
             )
-            serializer = ScheduleSerializer(schedules, many=True)
+            serializer = ScheduleCreateSerializer(schedules, many=True)
             return Response(
                 {"created ": len(schedules), "schedules": serializer.data},
                 status=status.HTTP_201_CREATED,
             )
         except Exception as e:
-            return Response(f"Error: {e}", status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
+        """
+        This method is only for updating day_type, time_start and time_end.
+        To change employee or date assigned to schedule - delete existing object and create new one.
+        """
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -131,8 +141,6 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         try:
             schedule_id = instance.id
-            # TODO: don't update employee?
-            # TODO: don't update date?
             _, _, day_type, time_start, time_end = self.get_validated_data(
                 validated_data
             )
@@ -142,7 +150,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             response_serializer = ScheduleSerializer(schedule)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(f"Error {e}", status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["post"])
     def update_multiple(self, request, *args, **kwargs):
@@ -164,9 +172,9 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             )
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(f"Error {e}", status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=["delete"])  # TODO: delete or post?
+    @action(detail=False, methods=["post"])
     def delete_multiple(self, request, *args, **kwargs):
         schedule_ids = request.data.get("schedule_ids", [])
 
@@ -183,20 +191,18 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
 
 class EmployeeReport(views.APIView):
-    # queryset = Employee.objects.all()
-    # serializer_class = EmployeeSerializer
-
-    # @action(detail=True, methods=["get"])
-    # def report(self, request, pk, format=None):
     def get(self, request, pk):
         employee = Employee.objects.get(pk=pk)
 
         start_date = request.query_params.get("start_date")
         end_date = request.query_params.get("end_date")
+        export_csv = request.query_params.get("export_csv")
+        now = timezone.localdate()
         if not start_date:
-            start_date = timezone.localdate()
+            start_date = now.replace(day=1)
         if not end_date:
-            end_date = timezone.localdate()
+            last_day = calendar.monthrange(now.year, now.month)[1]
+            end_date = now.replace(day=last_day, hour=23, minute=59, seconds=59)
         schedules = Schedule.objects.filter(employee=employee).filter(
             date__range=[start_date, end_date]
         )
@@ -204,16 +210,15 @@ class EmployeeReport(views.APIView):
             timestamp__date__range=[start_date, end_date]
         )
 
-        print("schedules", schedules, "time_events", time_events)
         reports = ReportService.generate_employee_report(
             employee, schedules, time_events
         )
-        print("reports:", reports)
+
+        if export_csv:
+            return ReportService.export_to_csv(reports)
+
         serializer = DailyWorklogSerializer(reports, many=True)
-
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    # TODO: add to csv
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):

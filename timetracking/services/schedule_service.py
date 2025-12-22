@@ -1,5 +1,5 @@
 from timetracking.models import Schedule
-from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
 
 
 class ScheduleService:
@@ -11,17 +11,8 @@ class ScheduleService:
             )
 
     @staticmethod
-    def validate_work_day(day_type, time_start, time_end):
-        if day_type == "WORK":
-            if not time_start or not time_end:
-                raise ValidationError("Work day requires start and end time")
-            if time_start >= time_end:
-                raise ValidationError("Start time must be before end time")
-
-    @staticmethod
     def create_schedule_day(employee_id, date, day_type, time_start, time_end):
         ScheduleService.validate_no_schedule_duplicate(employee_id, date)
-        ScheduleService.validate_work_day(day_type, time_start, time_end)
         return Schedule.objects.create(
             employee_id=employee_id,
             date=date,
@@ -51,7 +42,7 @@ class ScheduleService:
                 )
                 created_schedules.append(schedule)
             except Exception as e:
-                raise (f"Error {e}")
+                raise ValidationError(f"Error creating schedule for day {day}: {e}")
 
         return created_schedules
 
@@ -62,10 +53,7 @@ class ScheduleService:
         except Schedule.DoesNotExist:
             raise ValidationError(f"Schedule {schedule_id} does not exist")
 
-        ScheduleService.validate_work_day(day_type, time_start, time_end)
-        # schedule.update() ?
-        # schedule.employee = employee_id
-        # schedule.date = date
+        # ScheduleService.validate_work_day(day_type, time_start, time_end)
         schedule.day_type = day_type
         schedule.time_start = time_start
         schedule.time_end = time_end
@@ -83,6 +71,6 @@ class ScheduleService:
                 )
                 updated_schedules.append(schedule)
             except Exception as e:
-                raise ValidationError(f"Error updating schedule {schedule_id} :{e}")
+                raise ValidationError(f"Error updating schedule {schedule_id}: {e}")
 
         return updated_schedules

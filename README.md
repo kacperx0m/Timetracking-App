@@ -1,4 +1,15 @@
-### Zadanie rekrutacyjne – Rejestracja czasu pracy  
+# Aplikacja w trakcie tworzenia ...
+**Pozostało do zrobienia:**
+
+Backend:
+- uwierzytelnianie
+
+Frontend:
+- wszystkie widoki
+<br>
+<br>
+<br>
+## Zadanie rekrutacyjne – Rejestracja czasu pracy  
 **Backend: Django + Django REST Framework**  
 **Frontend (mile widziane): Vue 3**
 

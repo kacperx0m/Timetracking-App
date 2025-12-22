@@ -14,7 +14,7 @@ class Anomalies(Enum):
 class DailyWorklog:
     employee_id: int
     date: datetime.date
-    planned_hours: int
+    planned_hours: float
     worked_hours: float
     break_minutes: float
     minutes_late: float
@@ -32,5 +32,5 @@ class DailyWorklog:
             "minutes_late": self.minutes_late,
             "absent": self.absent,
             "is_leave": self.is_leave,
-            "anomalies": [anomaly for anomaly in self.anomalies],
+            "anomalies": [anomaly.value for anomaly in self.anomalies],
         }

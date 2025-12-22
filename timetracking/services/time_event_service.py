@@ -1,6 +1,6 @@
 from timetracking.models import TimeEvent
 from django.utils import timezone
-from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
 
 
 class TimeEventService:
@@ -17,30 +17,28 @@ class TimeEventService:
     def validate_event_logic(employee_id, event_type):
         today = timezone.now().date()
 
-        last_event = (
-            TimeEvent.objects.filter(employee_id=employee_id, timestamp__date=today)
-            .order_by("-timestamp")
-            .first()
-        )
-        first_event = (
-            TimeEvent.objects.filter(employee_id=employee_id, timestamp__date=today)
-            .order_by("-timestamp")
-            .last()
-        )
+        events_today = TimeEvent.objects.filter(
+            employee_id=employee_id, timestamp__date=today
+        ).order_by("-timestamp")
+        newest_event = events_today.first()
+        oldest_event = events_today.last()
+        if newest_event is not None:
+            active_check_in = newest_event.event_type != "CHECK_OUT"
+        else:
+            active_check_in = False
+
         if event_type == "CHECK_OUT":
-            if not first_event or first_event.event_type != "CHECK_IN":
+            if not oldest_event or oldest_event.event_type != "CHECK_IN":
                 raise ValidationError("Can't CHECK_OUT without active CHECK_IN")
-            if last_event.event_type != "BREAK_END":
-                raise ValidationError("Can't CHECK_OUT without BREAK_END")
 
         elif event_type == "BREAK_END":
-            if not last_event or last_event.event_type != "BREAK_START":
+            if not newest_event or newest_event.event_type != "BREAK_START":
                 raise ValidationError("Can't BREAK_END without BREAK_START")
 
         elif event_type == "BREAK_START":
-            if not first_event or first_event.event_type != "CHECK_IN":
+            if not active_check_in:
                 raise ValidationError("Can't BREAK_START without active CHECK_IN")
 
         elif event_type == "CHECK_IN":
-            if first_event and first_event.event_type == "CHECK_IN":
-                raise ValidationError("Can't CHECK_IN twice in one day")
+            if active_check_in:
+                raise ValidationError("Can't CHECK_IN while CHECK_IN is active")
