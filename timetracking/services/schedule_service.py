@@ -53,7 +53,6 @@ class ScheduleService:
         except Schedule.DoesNotExist:
             raise ValidationError(f"Schedule {schedule_id} does not exist")
 
-        # ScheduleService.validate_work_day(day_type, time_start, time_end)
         schedule.day_type = day_type
         schedule.time_start = time_start
         schedule.time_end = time_end

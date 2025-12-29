@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from timetracking.models import Employee, TimeEvent, Schedule
+from timetracking.models import Employee, TimeEvent, Schedule, Device
+from django.contrib.auth.models import User
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -11,7 +12,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
 class TimeEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeEvent
-        fields = ["id", "employee", "event_type", "timestamp", "device_id"]
+        fields = ["id", "employee", "event_type", "timestamp", "device"]
         read_only_fields = ["id", "timestamp"]
 
 
@@ -76,3 +77,15 @@ class DailyWorklogSerializer(serializers.Serializer):
     def validate_minutes_late(self, value):
         if value < 0:
             raise serializers.ValidationError("Minutes late can't be negative number")
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username"]
+
+
+class DeviceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Device
+        fields = ["id", "name", "user"]

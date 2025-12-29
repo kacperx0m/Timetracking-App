@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -11,6 +12,14 @@ class Employee(models.Model):
         return f"{self.name} {self.surname}"
 
 
+class Device(models.Model):
+    name = models.CharField(max_length=50)
+    user = models.OneToOneField(User, on_delete=models.PROTECT, related_name="device")
+
+    def __str__(self):
+        return f"{self.name} {self.user}"
+
+
 class EventTypes(models.TextChoices):
     CHECK_IN = "CHECK_IN"
     CHECK_OUT = "CHECK_OUT"
@@ -19,20 +28,16 @@ class EventTypes(models.TextChoices):
 
 
 class TimeEvent(models.Model):
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT)
     event_type = models.CharField(max_length=20, choices=EventTypes.choices)
-    timestamp = models.DateTimeField(
-        auto_now_add=True, db_index=True
-    )  # set field to now when object is created
-    device_id = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    device = models.ForeignKey(Device, on_delete=models.PROTECT)
 
     class Meta:
         ordering = ["-timestamp"]
 
     def __str__(self):
-        return (
-            f"{self.employee} - {self.event_type}: {self.timestamp}, {self.device_id}"
-        )
+        return f"{self.employee} - {self.event_type}: {self.timestamp}, {self.device}"
 
 
 class DayTypes(models.TextChoices):

@@ -1,11 +1,12 @@
-from timetracking.models import Schedule, Employee, TimeEvent
+from timetracking.models import Schedule, Employee, TimeEvent, Device
 from timetracking.serializers import (
-    ScheduleBaseSerializer,
     ScheduleCreateSerializer,
     ScheduleSerializer,
     EmployeeSerializer,
     TimeEventSerializer,
     DailyWorklogSerializer,
+    UserSerializer,
+    DeviceSerializer,
 )
 from rest_framework import generics, viewsets, views, status
 from rest_framework.response import Response
@@ -15,12 +16,15 @@ from timetracking.services.report_service import ReportService
 from rest_framework.decorators import action
 from django.utils import timezone
 import calendar
+from django.contrib.auth.models import User
+from timetracking.permissions import IsTablet, IsAdmin
 
 
 # Create your views here.
 class TimeEventRegister(generics.CreateAPIView):
     queryset = TimeEvent.objects.all()
     serializer_class = TimeEventSerializer
+    permission_classes = [IsTablet]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -31,7 +35,7 @@ class TimeEventRegister(generics.CreateAPIView):
         try:
             employee_id = validated_data["employee"].id
             event_type = validated_data["event_type"]
-            device_id = validated_data["device_id"]
+            device_id = validated_data["device"].id
             time_event = TimeEventService.register_time_event(
                 employee_id, event_type, device_id
             )
@@ -44,10 +48,12 @@ class TimeEventRegister(generics.CreateAPIView):
 class TimeEventViewSet(viewsets.ModelViewSet):
     queryset = TimeEvent.objects.all()
     serializer_class = TimeEventSerializer
+    permission_classes = [IsAdmin]
 
 
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
+    permission_classes = [IsAdmin]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -191,6 +197,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
 
 class EmployeeReport(views.APIView):
+    permission_classes = [IsAdmin]
+
     def get(self, request, pk):
         employee = Employee.objects.get(pk=pk)
 
@@ -222,5 +230,24 @@ class EmployeeReport(views.APIView):
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdmin]
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
+
+
+class UsersList(generics.ListAPIView):
+    permission_classes = [IsAdmin]
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class UserDetail(generics.RetrieveAPIView):
+    permission_classes = [IsAdmin]
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class Device(generics.ListCreateAPIView):
+    queryset = Device.objects.all()
+    serializer_class = DeviceSerializer
+    permission_classes = [IsAdmin]

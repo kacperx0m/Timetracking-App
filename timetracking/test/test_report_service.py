@@ -1,14 +1,19 @@
 from django.test import TestCase
-from timetracking.models import Employee, Schedule, TimeEvent
+from timetracking.models import Employee, Schedule, TimeEvent, Device
 from datetime import datetime, time, date
 from django.utils import timezone
 from timetracking.services.report_service import ReportService
+from django.contrib.auth.models import User
 
 
 class ReportServiceTest(TestCase):
     def setUp(self):
         self.employee = Employee.objects.create(name="Jane", surname="Nowak")
         self.date = date(2025, 12, 19)
+        self.tablet_user = User.objects.create_user(
+            username="test_tablet1", password="test_tablet1"
+        )
+        self.device = Device.objects.create(name="TEST_TABLET1", user=self.tablet_user)
 
         self.schedule = Schedule.objects.create(
             employee=self.employee,
@@ -25,7 +30,7 @@ class ReportServiceTest(TestCase):
         event = TimeEvent.objects.create(
             employee=self.employee,
             event_type=event_type,
-            device_id=1,
+            device_id=self.device.id,
         )
         naive_dt = datetime.combine(
             self.date, datetime.strptime(time_str, "%H:%M").time()

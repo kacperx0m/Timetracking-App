@@ -1,14 +1,19 @@
 from django.test import TestCase
-from timetracking.models import Employee, TimeEvent
+from timetracking.models import Employee, TimeEvent, Device
 from django.utils import timezone
 from datetime import datetime
 from timetracking.services.anomaly_service import AnomalyService, Anomalies
+from django.contrib.auth.models import User
 
 
 class AnomalyServiceTest(TestCase):
     def setUp(self):
         self.employee = Employee.objects.create(name="Jane", surname="Nowak")
         self.date = timezone.now().date()
+        self.tablet_user = User.objects.create(
+            username="test_tablet1", password="tablet1"
+        )
+        self.device = Device.objects.create(name="TEST_TABLET1", user=self.tablet_user)
 
     def test_no_anomalies_day(self):
         self.create_event_at_time(self.employee, "CHECK_IN", "08:00")
@@ -50,7 +55,7 @@ class AnomalyServiceTest(TestCase):
         event = TimeEvent.objects.create(
             employee=employee,
             event_type=event_type,
-            device_id=1,
+            device_id=self.device.id,
         )
         event.timestamp = str(
             timezone.make_aware(

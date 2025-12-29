@@ -31,6 +31,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("time-events/register/", views.TimeEventRegister.as_view()),
     path("reports/employee/<int:pk>/", views.EmployeeReport.as_view()),
+    path("users/", views.UsersList.as_view()),
+    path("users/<int:pk>/", views.UserDetail.as_view()),
 ]
 
 urlpatterns += router.urls

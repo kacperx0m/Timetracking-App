@@ -19,7 +19,7 @@ class TimeEventService:
 
         events_today = TimeEvent.objects.filter(
             employee_id=employee_id, timestamp__date=today
-        ).order_by("-timestamp")
+        ).order_by("-timestamp", "-id")
         newest_event = events_today.first()
         oldest_event = events_today.last()
         if newest_event is not None:
