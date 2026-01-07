@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
 from timetracking import views
-
+from rest_framework.authtoken.views import obtain_auth_token
 
 router = routers.DefaultRouter()  # or SimpleRouter
 router.register(r"employees", views.EmployeeViewSet, basename="employees")
@@ -33,6 +33,7 @@ urlpatterns = [
     path("reports/employee/<int:pk>/", views.EmployeeReport.as_view()),
     path("users/", views.UsersList.as_view()),
     path("users/<int:pk>/", views.UserDetail.as_view()),
+    path("api-token-auth/", obtain_auth_token, name="api_token_auth"),
 ]
 
 urlpatterns += router.urls

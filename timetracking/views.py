@@ -75,14 +75,6 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         time_end = request.data.get("time_end")
         return employee_id, days, day_type, time_start, time_end
 
-    def get_validated_data(self, validated_data):
-        employee_id = validated_data["employee"].id
-        date = validated_data["date"]
-        day_type = validated_data["day_type"]
-        time_start = validated_data["time_start"]
-        time_end = validated_data["time_end"]
-        return employee_id, date, day_type, time_start, time_end
-
     @action(detail=False, methods=["get"])
     def get_employee_schedule_range(self, request):
         employee_id, start_date, end_date, _ = self.get_query_params(request)
@@ -106,9 +98,11 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         validated_data = serializer.validated_data
 
         try:
-            employee_id, date, day_type, time_start, time_end = self.get_validated_data(
-                validated_data
-            )
+            employee_id = validated_data["employee"].id
+            date = validated_data["date"]
+            day_type = validated_data["day_type"]
+            time_start = validated_data["time_start"]
+            time_end = validated_data["time_end"]
             schedule = ScheduleService.create_schedule_day(
                 employee_id, date, day_type, time_start, time_end
             )
@@ -147,9 +141,9 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         try:
             schedule_id = instance.id
-            _, _, day_type, time_start, time_end = self.get_validated_data(
-                validated_data
-            )
+            day_type = validated_data["day_type"]
+            time_start = validated_data["time_start"]
+            time_end = validated_data["time_end"]
             schedule = ScheduleService.update_schedule_day(
                 schedule_id, day_type, time_start, time_end
             )
