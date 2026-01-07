@@ -1,11 +1,22 @@
 # Aplikacja w trakcie tworzenia ...
+**Zrobione:**
+Backend:
+- całe api
+
+Frontend:
+- widok logowania
+- widok listy schedule
+
 **Pozostało do zrobienia:**
 
 Frontend:
-- wszystkie widoki
+- reszta widoków
 <br>
 <br>
 <br>
+
+W celu zalogowania się i uwierzytelnienia konta, należy najpierw stworzyć konto użytkownika przy użyciu modułu manage.py z django. W przypadku konta tabletu wymagane jest przypisanie go do grupy tablets. Jeżeli konto ma należeć do admina, potrzebne będzie uprawnienie superuser lub staff. Użytkownik tablet ma możliwość rejestracji zdarzeń a zablokowaną całą resztę działań. Admin może robić wszystko poza rejestrowaniem zdarzeń.
+
 
 ## Zadanie rekrutacyjne – Rejestracja czasu pracy  
 **Backend: Django + Django REST Framework**  
